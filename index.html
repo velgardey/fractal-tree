@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive Fractal & L-System Generator - Create beautiful mathematical patterns">
+    <meta name="theme-color" content="#1a1a1a">
+    <title>Fractal & L-System Generator</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="container hashnode-embed">
+        <div class="preview-container">
+            <div class="canvas-container" aria-label="Fractal Pattern Preview">
+                <canvas id="fractalCanvas" role="img" aria-label="Generated fractal pattern"></canvas>
+            </div>
+            <div class="game-preview">
+                <h3>Game Level Preview</h3>
+                <canvas id="gameCanvas" role="img" aria-label="Game level visualization"></canvas>
+            </div>
+        </div>
+        <div class="controls" role="form" aria-label="Pattern Controls">
+            <div class="control-row">
+                <div class="control-group">
+                    <label for="generationType">Type:</label>
+                    <select id="generationType" aria-label="Select generation type">
+                        <option value="fractal">Fractal Tree</option>
+                        <option value="lsystem">L-System</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="depth">Depth:</label>
+                    <input type="range" id="depth" min="1" max="8" value="5" aria-label="Pattern depth">
+                    <span id="depthValue" aria-live="polite">5</span>
+                </div>
+            </div>
+            <div class="control-row">
+                <div class="control-group">
+                    <label for="angle">Angle:</label>
+                    <input type="range" id="angle" min="0" max="90" value="30" aria-label="Branch angle">
+                    <span id="angleValue" aria-live="polite">30°</span>
+                </div>
+                <div class="control-group">
+                    <label for="length">Length:</label>
+                    <input type="range" id="length" min="50" max="200" value="100" aria-label="Branch length">
+                    <span id="lengthValue" aria-live="polite">100</span>
+                </div>
+            </div>
+            <div class="control-row" id="lsystemControls" style="display: none;">
+                <div class="control-group">
+                    <label for="axiom">Axiom:</label>
+                    <input type="text" id="axiom" value="F" maxlength="1" aria-label="L-system axiom">
+                </div>
+                <div class="control-group">
+                    <label for="rule">Rule:</label>
+                    <input type="text" id="rule" value="F→F[+F]F[-F]F" aria-label="L-system rule">
+                </div>
+            </div>
+        </div>
+        <div class="legend">
+            <div class="legend-section">
+                <button class="legend-toggle" onclick="toggleLegend()" aria-expanded="true" aria-controls="legendContent">
+                    <h3>Parameters</h3>
+                    <span class="toggle-icon" aria-hidden="true">▼</span>
+                </button>
+                <div class="legend-content" id="legendContent" role="region" aria-label="Parameter descriptions">
+                    <div class="legend-item">
+                        <span class="dot" aria-hidden="true"></span>
+                        <div class="legend-content">
+                            <strong>Type:</strong>
+                            <p>Choose between Fractal Tree (recursive branching) or L-System (string rewriting) generation.</p>
+                        </div>
+                    </div>
+                    <div class="legend-item">
+                        <span class="dot" aria-hidden="true"></span>
+                        <div class="legend-content">
+                            <strong>Depth:</strong>
+                            <p>Number of recursive iterations. Higher values create more complex patterns but may be slower to render.</p>
+                        </div>
+                    </div>
+                    <div class="legend-item">
+                        <span class="dot" aria-hidden="true"></span>
+                        <div class="legend-content">
+                            <strong>Angle:</strong>
+                            <p>Branching angle in degrees. Controls how wide the tree or pattern spreads.</p>
+                        </div>
+                    </div>
+                    <div class="legend-item">
+                        <span class="dot" aria-hidden="true"></span>
+                        <div class="legend-content">
+                            <strong>Length:</strong>
+                            <p>Initial branch length. Larger values create bigger patterns.</p>
+                        </div>
+                    </div>
+                    <div class="legend-item">
+                        <span class="dot" aria-hidden="true"></span>
+                        <div class="legend-content">
+                            <strong>Axiom:</strong>
+                            <p>Starting string for L-System. Usually a single character like 'F'.</p>
+                        </div>
+                    </div>
+                    <div class="legend-item">
+                        <span class="dot" aria-hidden="true"></span>
+                        <div class="legend-content">
+                            <strong>Rule:</strong>
+                            <p>Rewriting rule for L-System. Format: 'F→F[+F]F[-F]F' where F is replaced with the pattern.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="attribution">
+            Made with ❤️ by velgardey
+        </div>
+    </div>
+    <script src="main.js"></script>
+    <script>
+        function toggleLegend() {
+            const content = document.getElementById('legendContent');
+            const icon = document.querySelector('.toggle-icon');
+            const button = document.querySelector('.legend-toggle');
+            const isExpanded = content.style.display !== 'none';
+            
+            content.style.display = isExpanded ? 'none' : 'block';
+            icon.textContent = isExpanded ? '▼' : '▲';
+            button.setAttribute('aria-expanded', !isExpanded);
+        }
+    </script>
+</body>
+</html>
