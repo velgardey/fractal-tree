@@ -146,6 +146,11 @@ class LSystem {
 class GamePreview {
     constructor(ctx) {
         this.ctx = ctx;
+        this.playerX = 50;
+        this.playerY = 0; // Will be set based on ground level
+        this.playerDirection = 1; // 1 = right, -1 = left
+        this.platforms = [];
+        this.animationFrame = 0;
     }
 
     draw(fractalType, depth, angle, length) {
@@ -153,84 +158,107 @@ class GamePreview {
         this.ctx.fillStyle = '#1a1a1a';
         this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
 
+        // Increment animation frame
+        this.animationFrame = (this.animationFrame + 1) % 60;
+        
+        // Draw simple background
+        this.drawSimpleBackground();
+        
+        // Generate level elements based on fractal parameters
+        this.generateLevel(fractalType, depth, angle, length);
+        
+        // Draw platforms
+        this.drawPlatforms();
+        
+        // Draw player character
+        this.drawPlayer();
+    }
+    
+    drawSimpleBackground() {
         // Draw sky gradient
         const gradient = this.ctx.createLinearGradient(0, 0, 0, this.ctx.canvas.height);
-        gradient.addColorStop(0, '#1a1a1a');
-        gradient.addColorStop(1, '#2d2d2d');
+        gradient.addColorStop(0, '#0a1a2a');
+        gradient.addColorStop(1, '#2a3a4a');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.ctx.canvas.width, this.ctx.canvas.height);
-
+        
         // Draw ground
-        this.ctx.fillStyle = '#2d2d2d';
-        this.ctx.fillRect(0, this.ctx.canvas.height - 50, this.ctx.canvas.width, 50);
-
-        // Draw trees based on the current fractal type
+        this.ctx.fillStyle = '#2d3d4d';
+        this.ctx.fillRect(0, this.ctx.canvas.height - 30, this.ctx.canvas.width, 30);
+    }
+    
+    generateLevel(fractalType, depth, angle, length) {
+        // Reset level elements
+        this.platforms = [];
+        
+        // Generate platforms based on fractal pattern
         if (fractalType === 'fractal') {
-            this.drawFractalTrees(depth, angle, length);
+            this.generateFractalPlatforms(this.ctx.canvas.width / 2, this.ctx.canvas.height - 30, length * 0.8, -90, angle, depth);
         } else {
-            this.drawLSystemTrees(depth, angle, length);
+            this.generateLSystemPlatforms(depth, angle, length);
         }
-
-        // Draw decorative elements
-        this.drawDecorations();
+        
+        // Add ground platform
+        this.platforms.push({
+            x: 0,
+            y: this.ctx.canvas.height - 30,
+            width: this.ctx.canvas.width,
+            height: 30,
+            color: '#2d3d4d'
+        });
+        
+        // Set player position on ground
+        this.playerY = this.ctx.canvas.height - 30;
     }
-
-    drawFractalTrees(depth, angle, length) {
-        const treeCount = Math.min(3, depth);
-        const spacing = this.ctx.canvas.width / (treeCount + 1);
-
-        for (let i = 0; i < treeCount; i++) {
-            const x = spacing * (i + 1);
-            const y = this.ctx.canvas.height - 50;
-            this.drawFractalTree(x, y, length * 0.5, angle, depth - 1);
-        }
+    
+    generateFractalPlatforms(x, y, length, angle, branchAngle, depth) {
+        if (depth <= 0) return;
+        
+        // Calculate endpoint using trigonometry
+        const endX = x + length * Math.cos(angle * Math.PI / 180);
+        const endY = y + length * Math.sin(angle * Math.PI / 180);
+        
+        // Create platform
+        const platformWidth = Math.max(10, length * 0.8);
+        const platformHeight = 10;
+        
+        this.platforms.push({
+            x: Math.min(x, endX) - platformWidth * 0.1,
+            y: Math.min(y, endY) - platformHeight * 0.5,
+            width: platformWidth,
+            height: platformHeight,
+            color: `hsl(${120 + depth * 30}, 70%, 40%)`
+        });
+        
+        // Recursively create branches
+        this.generateFractalPlatforms(endX, endY, length * 0.7, angle - branchAngle, branchAngle, depth - 1);
+        this.generateFractalPlatforms(endX, endY, length * 0.7, angle + branchAngle, branchAngle, depth - 1);
     }
-
-    drawFractalTree(x, y, length, angle, depth) {
-        if (depth === 0) return;
-
-        const endX = x + length * Math.sin(angle * Math.PI / 180);
-        const endY = y - length * Math.cos(angle * Math.PI / 180);
-
-        this.ctx.beginPath();
-        this.ctx.moveTo(x, y);
-        this.ctx.lineTo(endX, endY);
-        this.ctx.strokeStyle = `hsl(${120 + depth * 20}, 70%, 50%)`;
-        this.ctx.lineWidth = depth;
-        this.ctx.stroke();
-
-        this.drawFractalTree(endX, endY, length * 0.7, angle - angle, depth - 1);
-        this.drawFractalTree(endX, endY, length * 0.7, angle + angle, depth - 1);
-    }
-
-    drawLSystemTrees(depth, angle, length) {
-        const treeCount = Math.min(2, depth);
-        const spacing = this.ctx.canvas.width / (treeCount + 1);
-
-        for (let i = 0; i < treeCount; i++) {
-            const x = spacing * (i + 1);
-            const y = this.ctx.canvas.height - 50;
-            this.drawLSystemTree(x, y, length * 0.5, angle, depth);
-        }
-    }
-
-    drawLSystemTree(x, y, length, angle, depth) {
+    
+    generateLSystemPlatforms(depth, angle, length) {
         const sequence = this.generateLSystemSequence(depth);
-        let currentX = x;
-        let currentY = y;
-        let currentAngle = 0;
-
-        this.ctx.beginPath();
-        this.ctx.moveTo(currentX, currentY);
-
+        let x = this.ctx.canvas.width / 2;
+        let y = this.ctx.canvas.height - 30;
+        let currentAngle = -90;
+        const stack = [];
+        
         for (const char of sequence) {
             switch (char) {
                 case 'F':
-                    const newX = currentX + length * Math.sin(currentAngle * Math.PI / 180);
-                    const newY = currentY - length * Math.cos(currentAngle * Math.PI / 180);
-                    this.ctx.lineTo(newX, newY);
-                    currentX = newX;
-                    currentY = newY;
+                    const newX = x + length * 0.5 * Math.cos(currentAngle * Math.PI / 180);
+                    const newY = y + length * 0.5 * Math.sin(currentAngle * Math.PI / 180);
+                    
+                    // Create platform
+                    this.platforms.push({
+                        x: Math.min(x, newX) - 5,
+                        y: Math.min(y, newY) - 5,
+                        width: Math.abs(newX - x) + 10,
+                        height: 10,
+                        color: `hsl(${140 + currentAngle % 360}, 70%, 40%)`
+                    });
+                    
+                    x = newX;
+                    y = newY;
                     break;
                 case '+':
                     currentAngle += angle;
@@ -238,14 +266,19 @@ class GamePreview {
                 case '-':
                     currentAngle -= angle;
                     break;
+                case '[':
+                    stack.push({ x, y, angle: currentAngle });
+                    break;
+                case ']':
+                    const state = stack.pop();
+                    x = state.x;
+                    y = state.y;
+                    currentAngle = state.angle;
+                    break;
             }
         }
-
-        this.ctx.strokeStyle = '#4CAF50';
-        this.ctx.lineWidth = 2;
-        this.ctx.stroke();
     }
-
+    
     generateLSystemSequence(depth) {
         let result = 'F';
         for (let i = 0; i < depth; i++) {
@@ -253,27 +286,72 @@ class GamePreview {
         }
         return result;
     }
-
-    drawDecorations() {
-        // Draw grass
-        this.ctx.fillStyle = '#4CAF50';
-        for (let i = 0; i < 20; i++) {
-            const x = (this.ctx.canvas.width / 20) * i;
-            const height = 5 + Math.random() * 5;
-            this.ctx.fillRect(x, this.ctx.canvas.height - 50, 2, -height);
+    
+    drawPlatforms() {
+        for (const platform of this.platforms) {
+            this.ctx.fillStyle = platform.color;
+            this.ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+            
+            // Add platform details
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            this.ctx.fillRect(platform.x, platform.y, platform.width, 2);
         }
-
-        // Draw clouds
-        this.ctx.fillStyle = '#404040';
-        for (let i = 0; i < 3; i++) {
-            const x = 50 + i * 150;
-            const y = 50 + i * 20;
-            this.ctx.beginPath();
-            this.ctx.arc(x, y, 20, 0, Math.PI * 2);
-            this.ctx.arc(x + 15, y - 10, 15, 0, Math.PI * 2);
-            this.ctx.arc(x + 30, y, 20, 0, Math.PI * 2);
-            this.ctx.fill();
+    }
+    
+    drawPlayer() {
+        // Update player position for animation
+        this.playerX += this.playerDirection * 0.5;
+        
+        // Change direction at screen edges
+        if (this.playerX < 30 || this.playerX > this.ctx.canvas.width - 30) {
+            this.playerDirection *= -1;
         }
+        
+        // Body
+        this.ctx.fillStyle = '#3498db';
+        this.ctx.fillRect(this.playerX - 10, this.playerY - 40, 20, 20);
+        
+        // Legs
+        const legOffset = Math.sin(this.animationFrame * 0.2) * 3;
+        this.ctx.fillStyle = '#2980b9';
+        this.ctx.fillRect(this.playerX - 7, this.playerY - 20, 4, 20 + legOffset);
+        this.ctx.fillRect(this.playerX + 3, this.playerY - 20, 4, 20 - legOffset);
+        
+        // Arms
+        this.ctx.fillStyle = '#2980b9';
+        this.ctx.fillRect(
+            this.playerX - 15, 
+            this.playerY - 35 + Math.sin(this.animationFrame * 0.2) * 2, 
+            5, 
+            5
+        );
+        this.ctx.fillRect(
+            this.playerX + 10, 
+            this.playerY - 35 + Math.sin(this.animationFrame * 0.2 + Math.PI) * 2, 
+            5, 
+            5
+        );
+        
+        // Head
+        this.ctx.fillStyle = '#f1c40f';
+        this.ctx.beginPath();
+        this.ctx.arc(this.playerX, this.playerY - 45, 8, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Face
+        this.ctx.fillStyle = 'black';
+        
+        // Eyes
+        const eyeX = this.playerDirection > 0 ? 2 : -2;
+        this.ctx.beginPath();
+        this.ctx.arc(this.playerX - 3 + eyeX, this.playerY - 47, 1.5, 0, Math.PI * 2);
+        this.ctx.arc(this.playerX + 3 + eyeX, this.playerY - 47, 1.5, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Mouth
+        this.ctx.beginPath();
+        this.ctx.arc(this.playerX + this.playerDirection * 2, this.playerY - 42, 2, 0, Math.PI);
+        this.ctx.stroke();
     }
 }
 
