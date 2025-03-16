@@ -94,7 +94,18 @@ class LSystem {
     generate() {
         let result = this.axiom;
         for (let i = 0; i < this.iterations; i++) {
-            result = result.replace(/F/g, this.rule);
+            // Create a new string for this iteration
+            let nextResult = '';
+            // Process each character in the current result
+            for (let j = 0; j < result.length; j++) {
+                const char = result[j];
+                if (char === 'F') {
+                    nextResult += this.rule;
+                } else {
+                    nextResult += char;
+                }
+            }
+            result = nextResult;
         }
         return result;
     }
@@ -108,11 +119,16 @@ class LSystem {
         this.ctx.beginPath();
         this.ctx.moveTo(x, y);
 
+        // Scale the length based on the complexity of the L-system
+        // This helps make the depth changes more visible
+        const scaleFactor = Math.max(0.1, 1.0 / Math.pow(1.5, this.iterations - 1));
+        const scaledLength = this.length * scaleFactor;
+
         for (const char of sequence) {
             switch (char) {
                 case 'F':
-                    const newX = x + this.length * Math.sin(angle * Math.PI / 180);
-                    const newY = y - this.length * Math.cos(angle * Math.PI / 180);
+                    const newX = x + scaledLength * Math.sin(angle * Math.PI / 180);
+                    const newY = y - scaledLength * Math.cos(angle * Math.PI / 180);
                     this.ctx.lineTo(newX, newY);
                     x = newX;
                     y = newY;
@@ -242,11 +258,16 @@ class GamePreview {
         let currentAngle = -90;
         const stack = [];
         
+        // Scale the length based on the complexity of the L-system
+        // This helps make the depth changes more visible
+        const scaleFactor = Math.max(0.1, 1.0 / Math.pow(1.5, depth - 1));
+        const scaledLength = length * 0.5 * scaleFactor;
+        
         for (const char of sequence) {
             switch (char) {
                 case 'F':
-                    const newX = x + length * 0.5 * Math.cos(currentAngle * Math.PI / 180);
-                    const newY = y + length * 0.5 * Math.sin(currentAngle * Math.PI / 180);
+                    const newX = x + scaledLength * Math.cos(currentAngle * Math.PI / 180);
+                    const newY = y + scaledLength * Math.sin(currentAngle * Math.PI / 180);
                     
                     // Create platform
                     this.platforms.push({
@@ -282,7 +303,18 @@ class GamePreview {
     generateLSystemSequence(depth) {
         let result = 'F';
         for (let i = 0; i < depth; i++) {
-            result = result.replace(/F/g, 'F[+F]F[-F]F');
+            // Create a new string for this iteration
+            let nextResult = '';
+            // Process each character in the current result
+            for (let j = 0; j < result.length; j++) {
+                const char = result[j];
+                if (char === 'F') {
+                    nextResult += 'F[+F]F[-F]F';
+                } else {
+                    nextResult += char;
+                }
+            }
+            result = nextResult;
         }
         return result;
     }
@@ -363,7 +395,7 @@ function generate() {
 
     const depth = parseInt(depthInput.value);
     const angle = parseInt(angleInput.value);
-    const length = parseInt(lengthInput.value);
+    const length = parseFloat(lengthInput.value);
 
     if (generationType.value === 'fractal') {
         const tree = new FractalTree(
